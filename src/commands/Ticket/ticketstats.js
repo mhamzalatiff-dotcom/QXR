@@ -34,6 +34,8 @@ export default {
                 .setDescription("View your own review statistics"),
         ),
 
+    category: "Ticket",
+
     async execute(interaction, guildConfig, client) {
         const deferred = await InteractionHelper.safeDefer(interaction);
         if (!deferred) {
