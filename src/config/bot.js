@@ -259,6 +259,20 @@ export const botConfig = {
   },
 
   // =========================
+  // TICKET REVIEW SYSTEM
+  // =========================
+  reviewSystem: {
+    // Role IDs that can view ticket reviews/stats (empty array = admins only)
+    allowedRoles: [],
+
+    // Label to display when rating/comment is empty
+    skipLabel: "Skipped",
+
+    // Whether to show all tickets when viewing staff stats
+    showAllTickets: true,
+  },
+
+  // =========================
   // GIVEAWAY SETTINGS
   // =========================
   giveaways: {
