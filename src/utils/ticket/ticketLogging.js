@@ -172,7 +172,8 @@ async function createTicketLogEmbed(guild, event) {
       break;
 
     case 'priority': {
-      const priorityEmojis = { none: '⚪', low: '🔵', medium: '🟢', high: '🟡', urgent: '🔴' };
+      // Updated mapping: none ⚪, low 🟢, medium 🟡, high 🔴, urgent 🚨
+      const priorityEmojis = { none: '⚪', low: '🟢', medium: '🟡', high: '🔴', urgent: '🚨' };
       const priorityLabel = event.priority
         ? `${priorityEmojis[event.priority] || '⚪'} ${event.priority.charAt(0).toUpperCase()}${event.priority.slice(1)}`
         : 'Unknown';
@@ -277,4 +278,3 @@ export function validateLogChannel(channel, botMember) {
 
   return { valid: true };
 }
-
