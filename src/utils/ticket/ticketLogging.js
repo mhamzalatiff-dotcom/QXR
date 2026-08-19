@@ -172,16 +172,34 @@ async function createTicketLogEmbed(guild, event) {
       break;
 
     case 'priority': {
-      const priorityEmojis = { none: '⚪', low: '🔵', medium: '🟢', high: '🟡', urgent: '🔴' };
-      const priorityLabel = event.priority
+      // Updated mapping: none ⚪, low 🟢, medium 🟡, high 🔴, urgent 🚨
+      const priorityEmojis = { none: '⚪', low: '🟢', medium: '🟡', high: '🔴', urgent: '🚨' };
+      const newPriorityLabel = event.priority
         ? `${priorityEmojis[event.priority] || '⚪'} ${event.priority.charAt(0).toUpperCase()}${event.priority.slice(1)}`
         : 'Unknown';
+      const previousPriority = event.metadata?.previousPriority;
+      const previousPriorityLabel = previousPriority
+        ? `${priorityEmojis[previousPriority] || '⚪'} ${previousPriority.charAt(0).toUpperCase()}${previousPriority.slice(1)}`
+        : null;
+
+      // Use executor as the embed author when available
       author = await resolveUserAuthor(guild.client, event.executorId);
+
       inlineFields = [
         { name: 'Ticket', value: ticketRef, inline: true },
-        { name: 'Priority', value: priorityLabel, inline: true },
+        { name: 'Priority', value: newPriorityLabel, inline: true },
         { name: 'Updated by', value: executorMention || 'Unknown', inline: true },
       ];
+
+      if (previousPriorityLabel) {
+        fields.push({ name: 'Previous Priority', value: previousPriorityLabel, inline: false });
+      }
+
+      // Include channel mention if provided
+      if (channelMention) {
+        inlineFields.push({ name: 'Channel', value: channelMention, inline: true });
+      }
+
       break;
     }
 
@@ -277,4 +295,3 @@ export function validateLogChannel(channel, botMember) {
 
   return { valid: true };
 }
-
