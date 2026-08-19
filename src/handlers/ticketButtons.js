@@ -152,6 +152,60 @@ const createTicketHandler = {
   }
 };
 
+// Handler for multiple ticket type buttons (create_ticket_type:0, create_ticket_type:1, etc.)
+const createTicketTypeHandler = {
+  name: 'create_ticket_type',
+  async execute(interaction, client) {
+    try {
+      if (!(await ensureGuildContext(interaction))) return;
+
+      const rateLimitKey = `${interaction.user.id}:create_ticket`;
+      const allowed = await checkRateLimit(rateLimitKey, 3, 60000);
+      if (!allowed) {
+        await replyUserError(interaction, { type: ErrorTypes.RATE_LIMIT, message: 'You are creating tickets too quickly. Please wait a minute and try again.' });
+        return;
+      }
+
+      const config = await getGuildConfig(client, interaction.guildId);
+      const maxTicketsPerUser = config.maxTicketsPerUser || 3;
+      
+      const { getUserTicketCount } = await import('../services/ticket.js');
+      const currentTicketCount = await getUserTicketCount(interaction.guildId, interaction.user.id);
+      
+      if (currentTicketCount >= maxTicketsPerUser) {
+        return await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: `You have reached the maximum number of open tickets (${maxTicketsPerUser}).\n\nPlease close your existing tickets before opening a new one.` });
+      }
+      
+      // Extract the ticket type index from custom ID (e.g., "create_ticket_type:0")
+      const customIdParts = interaction.customId.split(':');
+      const typeIndex = parseInt(customIdParts[1], 10);
+      const ticketType = config.ticketButtonLabels?.[typeIndex] || `Ticket Type ${typeIndex + 1}`;
+      
+      const modal = new ModalBuilder()
+        .setCustomId(`create_ticket_modal:${typeIndex}`)
+        .setTitle(`Create a ${ticketType}`);
+
+      const reasonInput = new TextInputBuilder()
+        .setCustomId('reason')
+        .setLabel(`Why are you creating a ${ticketType}?`)
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder('Describe your issue...')
+        .setRequired(true)
+        .setMaxLength(1000);
+
+      const actionRow = new ActionRowBuilder().addComponents(reasonInput);
+      modal.addComponents(actionRow);
+
+      await interaction.showModal(modal);
+    } catch (error) {
+      logger.error('Error creating ticket type modal:', error);
+      if (!interaction.replied && !interaction.deferred) {
+        await replyUserError(interaction, { type: ErrorTypes.UNKNOWN, message: 'Could not open ticket creation form.' });
+      }
+    }
+  }
+};
+
 const createTicketModalHandler = {
   name: 'create_ticket_modal',
   async execute(interaction, client) {
@@ -165,11 +219,17 @@ const createTicketModalHandler = {
       const config = await getGuildConfig(client, interaction.guildId);
       const categoryId = config.ticketCategoryId || null;
       
+      // Extract ticket type from custom ID if it's a typed ticket (e.g., "create_ticket_modal:0")
+      const customIdParts = interaction.customId.split(':');
+      const typeIndex = customIdParts[1] ? parseInt(customIdParts[1], 10) : null;
+      const ticketType = typeIndex !== null ? config.ticketButtonLabels?.[typeIndex] || `Ticket Type ${typeIndex + 1}` : null;
+      
       const { channel } = await createTicket(
         interaction.guild,
         interaction.member,
         categoryId,
-        reason
+        reason,
+        ticketType
       );
       await interaction.editReply({
         embeds: [successEmbed(
@@ -252,7 +312,7 @@ const priorityTicketHandler = {
 
 export default createTicketHandler;
 export { 
-  createTicketModalHandler, 
-  // ... other exports ...
+  createTicketModalHandler,
+  createTicketTypeHandler,
   priorityTicketHandler,
 };
